@@ -145,9 +145,10 @@ def run():
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
+        st.session_state.messages.append({"role": "system", "content": system_message})
 
     for message in st.session_state.messages:
-        #if message["role"] != "system":  # Check if message role is not system <<----------Enable this line when system prompt is passed 
+        if message["role"] != "system":  # Check if message role is not system <<----------Enable this line when system prompt is passed 
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
@@ -192,6 +193,7 @@ def run():
         response_message = response_ai.choices[0].message
         tool_calls = response_message.tool_calls
         if tool_calls:
+            gif_runner = st.image('https://i.postimg.cc/P5YszBXF/output-online-gif.gif', width=100)
             print('+++++++++++Invoking function++++++++')
             # Step 3: call the function
             # Note: the JSON response may not always be valid; be sure to handle errors
@@ -226,20 +228,23 @@ def run():
                 #         "content": function_response,
                 #     }
                 # )  # extend conversation with function response
-            print('+++++++++++++++++++++++++++++++SSM++++++++++++++++++++++++++++++++++++++++++++++++++')
-            print(st.session_state.messages) # the last message in the session state
-            print('+++++++++++++++++++++++++++++++TEMP_MSG++++++++++++++++++++++++++++++++++++++++++++++++++')
-            print(temp_msg)
+            # print('+++++++++++++++++++++++++++++++SSM++++++++++++++++++++++++++++++++++++++++++++++++++')
+            # print(st.session_state.messages) # the last message in the session state
+            # print('+++++++++++++++++++++++++++++++TEMP_MSG++++++++++++++++++++++++++++++++++++++++++++++++++')
+            # print(temp_msg)
             
             
             second_response = client.chat.completions.create(
                 model=fine_tuned_model_id,
                 messages=[st.session_state.messages[-1]]+temp_msg,
             )
+            
             sec_response_message = second_response.choices[0].message
             st.session_state.messages.append({"role": "assistant", "content": sec_response_message.content})
+            gif_runner.empty()
             with st.chat_message("assistant"):
                 st.markdown(sec_response_message.content)
+        
         else:
             st.session_state.messages.append({"role": "assistant", "content": response_message.content})
             
