@@ -95,19 +95,19 @@ def search_internet(search_query):
     "api_key": serp_api_secret
 
     }
-    # print('--------------')
-    # print(params)
-    # print('--------------')
+    print('--------------')
+    print(params)
+    print('--------------')
     search = GoogleSearch(params)
     results = search.get_dict()
-    # print('--------------')
-    # print(results)
-    # print('--------------')
+    print('--------------')
+    print(results)
+    print('--------------')
     organic_results = results["organic_results"][:3]
 
     # Extract 'link' and 'snippet' fields from each dictionary
     filtered_data = [{'link': item['link'], 'snippet': item['snippet']} for item in organic_results]
-    print(filtered_data)
+
     # Convert the filtered data to JSON
     return json.dumps(filtered_data, indent=4)
 
@@ -147,7 +147,7 @@ def run():
         st.session_state.messages = []
 
     for message in st.session_state.messages:
-        #if message["role"] != "system":  # Check if message role is not system <<----------Enable this line when system prompt is passed 
+        if message["role"] != "system":  # Check if message role is not system
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
@@ -155,158 +155,27 @@ def run():
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
-        tools = [
-                    {
-                    "type": "function",
-                    "function": {
-                        "name": "search_internet",
-                        "description": "Search the internet for the search_query on Finance.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "search_query": {
-                                    "type": "string",
-                                    "description": "The query to search for on the internet."
-                                }
-                            },
-                            "required": ["search_query"]
-                        }
-                    }
-                }
-                ]
-        
-            # try:
-                    
-        response_ai = client.chat.completions.create(
-            model=st.session_state["openai_model"],
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            tools=tools,
-            tool_choice="auto",
-        )
-        
-        #response = response_ai.choices[0].message.content
-        
-        response_message = response_ai.choices[0].message
-        tool_calls = response_message.tool_calls
-        if tool_calls:
-            print('+++++++++++Invoking function++++++++')
-            # Step 3: call the function
-            # Note: the JSON response may not always be valid; be sure to handle errors
-            available_functions = {
-                "search_internet": search_internet,
-            }  # only one function in this example, but you can have multiple
-            # this temp_msg is to store the response from the function call - serpapi
-            temp_msg = []
-            temp_msg.append(response_message)  # extend conversation with assistant's reply <----- Not extending the conversation with assistant's reply
-            #st.session_state.messages.append(response_message)  # extend conversation with assistant's reply <----- Not extending the conversation with assistant's reply
-            # Step 4: send the info for each function call and function response to the model
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                function_to_call = available_functions[function_name]
-                # print('function to call -->',function_to_call)
-                function_args = json.loads(tool_call.function.arguments)
-                # print('function to call w/ arguments-->',function_args)
-                function_response = function_to_call(
-                    search_query=function_args.get("search_query")
+
+        with st.chat_message("assistant"):
+            try:    
+                stream = client.chat.completions.create(
+                    model=st.session_state["openai_model"],
+                    messages=[
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.messages
+                    ],
+                    stream=True,
                 )
-                temp_msg.append({
-                         "tool_call_id": tool_call.id,
-                         "role": "tool",
-                         "name": function_name,
-                         "content": function_response,
-                     })
-                # st.session_state.messages.append(
-                #     {
-                #         "tool_call_id": tool_call.id,
-                #         "role": "tool",
-                #         "name": function_name,
-                #         "content": function_response,
-                #     }
-                # )  # extend conversation with function response
-            print('+++++++++++++++++++++++++++++++SSM++++++++++++++++++++++++++++++++++++++++++++++++++')
-            print(st.session_state.messages) # the last message in the session state
-            print('+++++++++++++++++++++++++++++++TEMP_MSG++++++++++++++++++++++++++++++++++++++++++++++++++')
-            print(temp_msg)
-            
-            
-            second_response = client.chat.completions.create(
-                model=fine_tuned_model_id,
-                messages=[st.session_state.messages[-1]]+temp_msg,
-            )
-            sec_response_message = second_response.choices[0].message
-            st.session_state.messages.append({"role": "assistant", "content": sec_response_message.content})
-            with st.chat_message("assistant"):
-                st.markdown(sec_response_message.content)
-        else:
-            st.session_state.messages.append({"role": "assistant", "content": response_message.content})
-            
-            with st.chat_message("assistant"):
-                st.markdown(response_message.content)
-        
-        print('++++++++++++++++++++++++++++++++FNL STATE+++++++++++++++++++++++++++++++++++++++++++++++++')
-        print(st.session_state.messages)
-        print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        #with st.chat_message("assistant"):
-                
-                
-                
-                # response_message = response.choices[0].message
-                # tool_calls = response_message.tool_calls
-                ####response = st.write_stream(response_ai)
-                #st.markdown(response_message.content)
-                # response = st.write(response)
-                # # Step 2: check if the model wanted to call a function
-                # if tool_calls:
-                #     print('+++++++++++Invoking function++++++++')
-                #     # Step 3: call the function
-                #     # Note: the JSON response may not always be valid; be sure to handle errors
-                #     available_functions = {
-                #         "search_internet": search_internet,
-                #     }  # only one function in this example, but you can have multiple
-                #     st.session_state.messages.append(response_message)  # extend conversation with assistant's reply
-                #     # Step 4: send the info for each function call and function response to the model
-                #     for tool_call in tool_calls:
-                #         function_name = tool_call.function.name
-                #         function_to_call = available_functions[function_name]
-                #         # print('function to call -->',function_to_call)
-                #         function_args = json.loads(tool_call.function.arguments)
-                #         # print('function to call w/ arguments-->',function_args)
-                #         function_response = function_to_call(
-                #             search_query=function_args.get("search_query")
-                #         )
-                #         st.session_state.messages.append(
-                #             {
-                #                 "tool_call_id": tool_call.id,
-                #                 "role": "tool",
-                #                 "name": function_name,
-                #                 "content": function_response,
-                #             }
-                #         )  # extend conversation with function response
-                #     second_response = client.chat.completions.create(
-                #         model=fine_tuned_model_id,
-                #         messages=st.session_state.messages,
-                #     )
-                
-                
-                #     response = st.write(second_response.choices[0].message.content)
-                # else:
-                #     response = st.write(response.choices[0].message.content)    
-                    
-                    
-                    
-            # except Exception as e:
-            #     print(e)
-            #     st.write("Maximum Token's limit reached. Please refresh the Page.")
-            #     st.stop()
+                response = st.write_stream(stream)
+            except Exception as e:
+                st.write("Maximum Token's limit reached. Please refresh the Page.")
+                st.stop()
                 
         #st.session_state.messages.append({"role": "system", "content": system_message})
-        #st.session_state.messages.append({"role": "assistant", "content": response_message.content})
+        st.session_state.messages.append({"role": "assistant", "content": response})
    
     # Adding a system message without rendering it
-    # st.session_state.messages.append({"role": "system", "content": system_message})
+    #st.session_state.messages.append({"role": "system", "content": system_message})
 
 if __name__ == "__main__":
     run()
