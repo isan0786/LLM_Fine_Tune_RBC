@@ -112,7 +112,6 @@ def search_internet(search_query):
     return json.dumps(filtered_data, indent=4)
 
 def run():
-    load_dotenv()
 
     # # Setting page title and header
     st.set_page_config(page_title="Codi", page_icon=":robot_face:")
