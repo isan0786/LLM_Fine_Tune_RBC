@@ -125,9 +125,15 @@ def run():
 
     st.markdown("<h4 style='text-align: center;'>How can I help you today?</h4>", unsafe_allow_html=True)
     
-    # fine tune model id
-    fine_tuned_model_id='ft:gpt-3.5-turbo-0125:personal:di-txn-assist:9GCDhNRR'
+    system_message = """You are Fine-tuned on following 3 tasks:
+    1. Queue Task - You will be provided queries from 'Direct Investing' customer service department at RBC. Classify each query to the right queue category.\nProvide your output in a bullet point format with only one: Queue Category\nQueue Categories are:\n--Queue 1: Account Management\n--Queue 2: Fund Transfer\n--Queue 3: External Transfers\n--Queue 4: Trading and Withdrawals"
 
+    2. Transactional Task - You are given with the transactional data and your task is to process this tabular data containing both text and numerical values based on criteria then generate answers.\n-The answers should be in bullets and sub-bullet points\n-If the answer cannot be found in the Transactional data given below, write 'please contact RBC Direct Investing Team.'\nTransactional Data :\n| Account No | Request Date | Transactional Details | Transfer Date | Withdrawal Amount | Deposit Amount | Balance Amount | Expected Transfer Days | Status | Note | Last Note Date |\n|------------|--------------|---------------------|---------------|----------------|-------------|-------------|-----------------------|--------|------|----------------|\n| 123456 | 2024-01-05 | Transferred cash from TD Bank to RBC | 2024-02-14 | - | 75000 | 150000 | 10 | Opened | Contacted customer to confirm transaction | 2024-02-14 |\n| 789012 | 2024-01-10 | Transferred funds from CIBC to RBC | 2024-01-25 | - | 100000 | 200000 | 15 | Opened | Resolved missing withdrawal transaction information | 2024-01-25 |\n| 345678 | 2024-01-15 | Withdrew cash for investment | 2024-02-05 | 50000 | - | 150000 | - | Closed | - | - |\n| 901234 | 2024-01-20 | Deposited funds from BMO into account | 2024-02-07 | - | 85000 | 185000 | 18 | Opened | Verified deposit with customer | 2024-02-07 |\n| 567890 | 2024-01-25 | Transferred money from RBC to TD Bank | 2024-02-10 | - | 60000 | 160000 | 16 | Opened | Sent confirmation email to customer | 2024-02-10 |\n| 234567 | 2024-02-03 | Withdrew funds for stock purchase | 2024-02-25 | 70000 | - | 160000 | - | Closed | - | - |\n| 890123 | 2024-02-08 | Transferred cash from ScotiaBank to RBC | 2024-02-28 | - | 95000 | 195000 | 20 | Opened | Called customer on the same day | 2024-02-28 |\n| 456789 | 2024-02-12 | Deposited funds from RBC into account | 2024-03-06 | - | 80000 | 180000 | 22 | Opened | Resolved deposit discrepancy | 2024-03-06 |\n| 123456 | 2024-02-18 | Withdrew cash for investment | 2024-03-12 | 45000 | - | 135000 | - | Closed | -
+
+    3. Customer Service QnA Task - You will be provided queries from customer service department. Your task is to answer the question using only the provided steps with reference at the end. If the document does not contain the information needed to answer this question then write: 'Insufficient information, please contact RBC Direct Investing customer service representative at 1-800-769-2560.
+
+    --You are allowed to generate search_query text on Financial Industries such as Dividends, Earnings per share/EPS etc. and plug into functions.  Provide Answer with Reference link from function in the format: [Answer](URL)"
+    """
     
 
     
@@ -141,8 +147,9 @@ def run():
         st.session_state.messages = []
 
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        if message["role"] != "system":  # Check if message role is not system
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
     if prompt := st.chat_input("Message Codi...."):
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -150,16 +157,25 @@ def run():
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            stream = client.chat.completions.create(
-                model=st.session_state["openai_model"],
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                ],
-                stream=True,
-            )
-            response = st.write_stream(stream)
+            try:    
+                stream = client.chat.completions.create(
+                    model=st.session_state["openai_model"],
+                    messages=[
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.messages
+                    ],
+                    stream=True,
+                )
+                response = st.write_stream(stream)
+            except Exception as e:
+                st.write("Maximum Token's limit reached. Please refresh the Page.")
+                st.stop()
+                
+        #st.session_state.messages.append({"role": "system", "content": system_message})
         st.session_state.messages.append({"role": "assistant", "content": response})
+   
+    # Adding a system message without rendering it
+    st.session_state.messages.append({"role": "system", "content": system_message})
 
 if __name__ == "__main__":
     run()
