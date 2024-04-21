@@ -10,8 +10,8 @@ load_dotenv()
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 fine_tuned_model_id = 'ft:gpt-3.5-turbo-0125:personal:di-txn-assist:9GCDhNRR'
 # Set org ID and API key
-openai.api_key = st.secrets["API_KEY"]
-openai.base_url = st.secrets["BASE_URL"]
+# openai.api_key = st.secrets["API_KEY"]
+# openai.base_url = st.secrets["BASE_URL"]
 serp_api_secret = st.secrets["SERP_API_KEY"]
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", openai_api_key))
