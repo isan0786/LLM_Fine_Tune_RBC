@@ -19,7 +19,7 @@ def run():
     #  # Load and display image
     image = "./assets/images/codi.png"  # Replace "your_image_path.jpg" with the path to your image file
 
-    st.markdown("<img src='https://static.streamlit.io/examples/dog.jpg' width='100' height='100' style='display: block; margin: 0 auto;'>" , unsafe_allow_html=True)
+    st.markdown("<img src='https://github.com/isan0786/LLM_Fine_Tune_RBC/blob/main/assets/images/codi.png' width='100' height='100' style='display: block; margin: 0 auto;'>" , unsafe_allow_html=True)
 
     st.markdown("<h4 style='text-align: center;'>How can I help you today?</h4>", unsafe_allow_html=True)
     
