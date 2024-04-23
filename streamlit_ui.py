@@ -4,15 +4,20 @@ from streamlit_chat import message
 from dotenv import load_dotenv
 import os
 import json
-from serpapi import GoogleSearch
+#from serpapi import GoogleSearch
+import requests
 
-load_dotenv()
+load_dotenv(override=True)
 openai_api_key = st.secrets["OPENAI_API_KEY"]
+#openai_api_key = os.getenv("OPENAI_API_KEY")
 fine_tuned_model_id = 'ft:gpt-3.5-turbo-0125:personal:di-txn-assist:9GCDhNRR'
 # Set org ID and API key
 # openai.api_key = st.secrets["API_KEY"]
 # openai.base_url = st.secrets["BASE_URL"]
+
 serp_api_secret = st.secrets["SERP_API_KEY"]
+#serp_api_secret = os.getenv("SERP_API_KEY")
+
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", openai_api_key))
 
@@ -89,25 +94,39 @@ def search_internet(search_query):
     if search_query == None:
         print("LLM Didn't pass the argument")
         return
-    params = {
-    "engine": "google",
-    "q": search_query,
-    "api_key": serp_api_secret
+    # params = {
+    # "engine": "google",
+    # "q": search_query,
+    # "api_key": serp_api_secret
 
+    # }
+    # # print('--------------')
+    # # print(params)
+    # # print('--------------')
+    # search = GoogleSearch(params)
+    # results = search.get_dict()
+    # # print('--------------')
+    # # print(results)
+    # # print('--------------')
+    # organic_results = results["organic_results"][:3]
+    
+    params = {
+    'api_key': serp_api_secret,
+    'q': search_query,
+    'google_domain': 'google.com',
+    'gl': 'ca'
     }
-    # print('--------------')
-    # print(params)
-    # print('--------------')
-    search = GoogleSearch(params)
-    results = search.get_dict()
-    # print('--------------')
-    # print(results)
-    # print('--------------')
-    organic_results = results["organic_results"][:3]
+
+    # make the http GET request to VALUE SERP
+    api_result = requests.get('https://api.valueserp.com/search', params)
+
+    data = json.loads((json.dumps(api_result.json())))
+
+    # Extract organic results
+    organic_results = data["organic_results"][:3]   
 
     # Extract 'link' and 'snippet' fields from each dictionary
     filtered_data = [{'link': item['link'], 'snippet': item['snippet']} for item in organic_results]
-    print(filtered_data)
     # Convert the filtered data to JSON
     return json.dumps(filtered_data, indent=4)
 
